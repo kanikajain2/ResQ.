@@ -1,0 +1,74 @@
+name: resq
+description: "ResQ Emergency Platform"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core:
+  firebase_auth:
+  cloud_firestore:
+  firebase_messaging:
+  firebase_storage:
+  firebase_database:
+  firebase_dynamic_links:
+
+  # Google APIs
+  google_maps_flutter:
+  google_generative_ai:
+
+  # Hardware & Sensors
+  mobile_scanner:
+  nfc_manager:
+
+  nearby_connections:
+  connectivity_plus:
+  sensors_plus:
+  geolocator:
+  vibration:
+
+  # Communication
+  speech_to_text:
+  flutter_webrtc:
+  http:
+
+  # State & Routing
+  provider: ^6.1.2
+  go_router:
+
+  # UI & Animations
+  google_fonts:
+  cached_network_image:
+  shimmer:
+  lottie:
+  fl_chart:
+  animate_do:
+  glass_kit:
+  flutter_animate:
+  card_swiper:
+  smooth_page_indicator:
+
+  # Utils
+  pdf:
+  path_provider:
+  image_picker:
+  share_plus:
+  permission_handler:
+  intl:
+  uuid:
+  url_launcher: ^6.2.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

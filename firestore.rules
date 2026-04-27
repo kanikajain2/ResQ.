@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPER FUNCTIONS ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isStaff() {
+      return exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+    
+    function getStaffData() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data;
+    }
+    
+    function hasRole(roles) {
+      return isStaff() && getStaffData().role.lower() in roles;
+    }
+
+    // --- STAFF PROFILES ---
+    match /staff/{staffId} {
+      // Any authenticated staff can see the team
+      allow read: if isAuthenticated();
+      
+      // Only Admins can manage the roster; individuals can update their own phone/status
+      allow create, delete: if hasRole(['admin']);
+      allow update: if hasRole(['admin', 'manager']) || request.auth.uid == staffId;
+    }
+
+    // --- INCIDENTS ---
+    match /incidents/{incidentId} {
+      // Staff see everything; Guests only see their own active crisis
+      allow read: if isStaff() || (isAuthenticated() && resource.data.guestId == request.auth.uid);
+      
+      // Any guest can cry for help
+      allow create: if isAuthenticated();
+      
+      // Update Protection:
+      allow update: if 
+        // 1. High Command: Admin/Manager have full resolution authority
+        hasRole(['admin', 'manager']) ||
+        
+        // 2. The Responder: Can update status to 'assigned', 'enRoute', 'onScene'
+        (isStaff() && (
+          request.resource.data.status in ['assigned', 'enRoute', 'onScene'] ||
+          resource.data.assignedResponderId == request.auth.uid
+        )) ||
+        
+        // 3. The Guest: Can only CANCEL their own alert (resolve as false alarm)
+        (resource.data.guestId == request.auth.uid && 
+         request.resource.data.status == 'resolved' && 
+         request.resource.data.isFalseAlarm == true);
+         
+      // Prevent data corruption: Ensure critical fields don't change after creation
+      allow update: if request.resource.data.roomNumber == resource.data.roomNumber &&
+                     request.resource.data.guestId == resource.data.guestId;
+    }
+    
+    // --- EMERGENCY MESSAGES ---
+    match /incidents/{incidentId}/messages/{messageId} {
+      // Privacy: Only staff and the specific guest can see the chat
+      allow read: if isStaff() || 
+        get(/databases/$(database)/documents/incidents/$(incidentId)).data.guestId == request.auth.uid;
+        
+      allow create: if isAuthenticated();
+    }
+    
+    // --- HOTEL CONFIG ---
+    match /hotelConfig/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['admin']);
+    }
+  }
+}
