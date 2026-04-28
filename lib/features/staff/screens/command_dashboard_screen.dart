@@ -501,173 +501,191 @@ class _CommandDashboardScreenState extends State<CommandDashboardScreen> {
   }
 
   Widget _buildDashboardTab(List<IncidentModel> incidents) {
-    return Expanded(
-      child: Column(
+    final isWideScreen = MediaQuery.of(context).size.width > 800;
+
+    final mapWidget = Container(
+      height: isWideScreen ? double.infinity : MediaQuery.of(context).size.height * 0.35,
+      decoration: BoxDecoration(
+        color: context.tc.isDark
+            ? const Color(0xFF1A1A28)
+            : Colors.grey.shade100,
+        border: isWideScreen 
+            ? Border(right: BorderSide(color: context.tc.border))
+            : Border(bottom: BorderSide(color: context.tc.border)),
+      ),
+      child: Stack(
         children: [
-          // Map placeholder with venue floor plan
-          Container(
-            height: MediaQuery.of(context).size.height * 0.35,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: context.tc.isDark
-                  ? const Color(0xFF1A1A28)
-                  : Colors.grey.shade100,
-              border: Border(bottom: BorderSide(color: context.tc.border)),
-            ),
-            child: Stack(
-              children: [
-                GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: _defaultPos,
-                  onMapCreated: (GoogleMapController controller) {
-                    if (!_mapController.isCompleted) {
-                      _mapController.complete(controller);
-                    }
-                  },
-                  markers: _buildGoogleMarkers(incidents),
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapToolbarEnabled: false,
-                ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: context.tc.cardColor.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: context.tc.cardShadow,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                              color: AppColors.primary, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 8),
-                        Text("${incidents.length} Active Incidents",
-                            style: AppTextStyles.body.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Mesh Peer Alerts Section
-          Consumer<NearbyService>(
-            builder: (context, nearby, _) {
-              if (nearby.receivedIncidents.isEmpty) return const SizedBox.shrink();
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  border: const Border(bottom: BorderSide(color: Colors.red, width: 2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.hub_rounded, color: Colors.red, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          "P2P MESH ALERTS (${nearby.receivedIncidents.length})",
-                          style: AppTextStyles.caption.copyWith(
-                            color: Colors.red, 
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => nearby.clearReceivedIncidents(),
-                          child: const Text("CLEAR", style: TextStyle(color: Colors.red, fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ...nearby.receivedIncidents.map((inc) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Text("🚨 ROOM ${inc['roomNumber']}", 
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              inc['description'] ?? 'No description',
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Colors.white54),
-                        ],
-                      ),
-                    )),
-                  ],
-                ),
-              );
+          GoogleMap(
+            mapType: MapType.normal,
+            initialCameraPosition: _defaultPos,
+            onMapCreated: (GoogleMapController controller) {
+              if (!_mapController.isCompleted) {
+                _mapController.complete(controller);
+              }
             },
+            markers: _buildGoogleMarkers(incidents),
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Row(
-              children: [
-                _buildStatCard("Critical", incidents.where((i) => i.severity >= 4).length, Colors.redAccent),
-                const SizedBox(width: 12),
-                _buildStatCard("Medium", incidents.where((i) => i.severity == 3).length, Colors.orangeAccent),
-                const SizedBox(width: 12),
-                _buildStatCard("Low", incidents.where((i) => i.severity <= 2).length, Colors.greenAccent),
-              ],
-            ),
-          ),
-          // Incident list
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(top: 4, bottom: 80),
-              itemCount: incidents.length,
-              itemBuilder: (context, index) {
-                final incident = incidents[index];
-                final minutesElapsed =
-                    DateTime.now().difference(incident.createdAt).inMinutes;
-                return IncidentCard(
-                  id: incident.id,
-                  type: incident.type,
-                  roomNumber: incident.roomNumber,
-                  aiSummary: incident.aiSummary ?? '',
-                  description: incident.description,
-                  severity: incident.severity,
-                  status: incident.status,
-                  assignedResponder: incident.assignedResponderId,
-                  minutesElapsed: minutesElapsed,
-                  triageStartedAt: incident.triageStartedAt,
-                  triageCompletedAt: incident.triageCompletedAt,
-                  onAutoAssign: () => _assignmentService.autoAssignStaff(
-                      incident, 0, 0), // Mock coordinates
-                )
-                    .animate()
-                    .fadeIn(delay: (index * 50).ms)
-                    .slideX(begin: 0.1, end: 0);
-              },
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.tc.cardColor.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(100),
+                boxShadow: context.tc.cardShadow,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                        color: AppColors.primary, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Text("${incidents.length} Active Incidents",
+                      style: AppTextStyles.body.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+
+    final contentWidget = Column(
+      children: [
+        // Mesh Peer Alerts Section
+        Consumer<NearbyService>(
+          builder: (context, nearby, _) {
+            if (nearby.receivedIncidents.isEmpty) return const SizedBox.shrink();
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                border: const Border(bottom: BorderSide(color: Colors.red, width: 2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.hub_rounded, color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        "P2P MESH ALERTS (${nearby.receivedIncidents.length})",
+                        style: AppTextStyles.caption.copyWith(
+                          color: Colors.red, 
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => nearby.clearReceivedIncidents(),
+                        child: const Text("CLEAR", style: TextStyle(color: Colors.red, fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...nearby.receivedIncidents.map((inc) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Text("🚨 ROOM ${inc['roomNumber']}", 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            inc['description'] ?? 'No description',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Colors.white54),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            );
+          },
+        ),
+        
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Row(
+            children: [
+              _buildStatCard("Critical", incidents.where((i) => i.severity >= 4).length, Colors.redAccent),
+              const SizedBox(width: 12),
+              _buildStatCard("Medium", incidents.where((i) => i.severity == 3).length, Colors.orangeAccent),
+              const SizedBox(width: 12),
+              _buildStatCard("Low", incidents.where((i) => i.severity <= 2).length, Colors.greenAccent),
+            ],
+          ),
+        ),
+        // Incident list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(top: 4, bottom: 80),
+            itemCount: incidents.length,
+            itemBuilder: (context, index) {
+              final incident = incidents[index];
+              final minutesElapsed =
+                  DateTime.now().difference(incident.createdAt).inMinutes;
+              return IncidentCard(
+                id: incident.id,
+                type: incident.type,
+                roomNumber: incident.roomNumber,
+                aiSummary: incident.aiSummary ?? '',
+                description: incident.description,
+                severity: incident.severity,
+                status: incident.status,
+                assignedResponder: incident.assignedResponderId,
+                minutesElapsed: minutesElapsed,
+                triageStartedAt: incident.triageStartedAt,
+                triageCompletedAt: incident.triageCompletedAt,
+                onAutoAssign: () => _assignmentService.autoAssignStaff(
+                    incident, 0, 0), // Mock coordinates
+              )
+                  .animate()
+                  .fadeIn(delay: (index * 50).ms)
+                  .slideX(begin: 0.1, end: 0);
+            },
+          ),
+        ),
+      ],
+    );
+
+    return Expanded(
+      child: isWideScreen
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 6, child: mapWidget),
+                Expanded(flex: 4, child: contentWidget),
+              ],
+            )
+          : Column(
+              children: [
+                mapWidget,
+                Expanded(child: contentWidget),
+              ],
+            ),
     );
   }
 

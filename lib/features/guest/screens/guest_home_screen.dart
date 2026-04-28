@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -56,22 +57,37 @@ class _GuestHomeScreenState extends State<GuestHomeScreen>
   }
 
   void _initNfc() {
-    _nfcService.startSession(onTagRead: (tagData) {
-      if (mounted) _triggerShakeSos();
-    });
+    if (kIsWeb) return;
+    try {
+      _nfcService.startSession(onTagRead: (tagData) {
+        if (mounted) _triggerShakeSos();
+      });
+    } catch (e) {
+      debugPrint("NFC Error: $e");
+    }
   }
 
   void _initMesh(NearbyService nearby) {
+    if (kIsWeb) return;
     if (_isNearbyActive) return;
     _isNearbyActive = true;
-    nearby.startAdvertising(widget.roomNumber);
-    nearby.startDiscovery();
+    try {
+      nearby.startAdvertising(widget.roomNumber);
+      nearby.startDiscovery();
+    } catch (e) {
+      debugPrint("Mesh init error: $e");
+    }
   }
 
   void _stopMesh(NearbyService nearby) {
+    if (kIsWeb) return;
     if (!_isNearbyActive) return;
     _isNearbyActive = false;
-    nearby.stopAll();
+    try {
+      nearby.stopAll();
+    } catch (e) {
+      debugPrint("Mesh stop error: $e");
+    }
   }
 
   Future<void> _checkWiFi() async {
@@ -83,29 +99,40 @@ class _GuestHomeScreenState extends State<GuestHomeScreen>
   }
 
   void _initShakeDetection() {
-    _accelerometerSub = userAccelerometerEventStream().listen((event) {
-      double acceleration =
-          event.x * event.x + event.y * event.y + event.z * event.z;
-      if (acceleration > 400) {
-        DateTime now = DateTime.now();
-        if (now.difference(_lastShakeTime) >
-            const Duration(milliseconds: 500)) {
-          _accelerations.add(acceleration);
-          _lastShakeTime = now;
-          _accelerations.removeWhere((a) =>
-              now.difference(_lastShakeTime) > const Duration(seconds: 2));
-          if (_accelerations.length >= 3) {
-            _accelerations.clear();
-            _triggerShakeSos();
+    if (kIsWeb) return;
+    try {
+      _accelerometerSub = userAccelerometerEventStream().listen((event) {
+        double acceleration =
+            event.x * event.x + event.y * event.y + event.z * event.z;
+        if (acceleration > 400) {
+          DateTime now = DateTime.now();
+          if (now.difference(_lastShakeTime) >
+              const Duration(milliseconds: 500)) {
+            _accelerations.add(acceleration);
+            _lastShakeTime = now;
+            _accelerations.removeWhere((a) =>
+                now.difference(_lastShakeTime) > const Duration(seconds: 2));
+            if (_accelerations.length >= 3) {
+              _accelerations.clear();
+              _triggerShakeSos();
+            }
           }
         }
-      }
-    });
+      });
+    } catch (e) {
+      debugPrint("Accelerometer Error: $e");
+    }
   }
 
   Future<void> _triggerShakeSos() async {
-    bool? hasVibrator = await Vibration.hasVibrator();
-    if (hasVibrator == true) Vibration.vibrate();
+    if (!kIsWeb) {
+      try {
+        bool? hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator == true) Vibration.vibrate();
+      } catch (e) {
+        debugPrint("Vibration Error: $e");
+      }
+    }
     if (mounted) context.push('/countdown?room=${widget.roomNumber}');
   }
 

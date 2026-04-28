@@ -31,42 +31,47 @@ class _EntryScreenState extends State<EntryScreen> {
                 ],
               ),
             ),
-            child: Column(
-              children: [
-                _buildTopSection().animate().slideY(
-                    begin: -0.5,
-                    end: 0,
-                    duration: 400.ms,
-                    curve: Curves.easeOutCubic),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                    child: Column(
-                      children: [
-                        _buildGuestCard(context)
-                            .animate(delay: 100.ms)
-                            .slideY(begin: 0.2, duration: 400.ms)
-                            .fadeIn(),
-                        const SizedBox(height: 12),
-                        _buildStaffCard(context)
-                            .animate(delay: 200.ms)
-                            .slideY(begin: 0.2, duration: 400.ms)
-                            .fadeIn(),
-                        const SizedBox(height: 12),
-                        _buildResponderCard(context)
-                            .animate(delay: 300.ms)
-                            .slideY(begin: 0.2, duration: 400.ms)
-                            .fadeIn(),
-                        const Spacer(),
-                        _buildSubOptions(context)
-                            .animate(delay: 400.ms)
-                            .fadeIn(duration: 300.ms)
-                            .slideY(begin: 0.2),
-                      ],
-                    ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildTopSection().animate().slideY(
+                          begin: -0.5,
+                          end: 0,
+                          duration: 400.ms,
+                          curve: Curves.easeOutCubic),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                        child: Column(
+                          children: [
+                            _buildGuestCard(context)
+                                .animate(delay: 100.ms)
+                                .slideY(begin: 0.2, duration: 400.ms)
+                                .fadeIn(),
+                            const SizedBox(height: 12),
+                            _buildStaffCard(context)
+                                .animate(delay: 200.ms)
+                                .slideY(begin: 0.2, duration: 400.ms)
+                                .fadeIn(),
+                            const SizedBox(height: 12),
+                            _buildResponderCard(context)
+                                .animate(delay: 300.ms)
+                                .slideY(begin: 0.2, duration: 400.ms)
+                                .fadeIn(),
+                            const SizedBox(height: 32), // Replaced Spacer
+                            _buildSubOptions(context)
+                                .animate(delay: 400.ms)
+                                .fadeIn(duration: 300.ms)
+                                .slideY(begin: 0.2),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
